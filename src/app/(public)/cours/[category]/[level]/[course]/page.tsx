@@ -8,6 +8,8 @@ import { categoryAccent, lessonTypeMeta } from "@/lib/ui";
 import { CourseAccessPanel } from "@/components/course-access-panel";
 import { stripeEnabled } from "@/lib/stripe";
 import { ViewTracker } from "@/components/view-tracker";
+import { PageBand } from "@/components/page-band";
+import { subjectIllustration } from "@/lib/illustrations";
 
 type Params = {
   category: string;
@@ -69,20 +71,58 @@ export default async function CoursePage(props: {
     ? Math.round((doneCount / lessons.length) * 100)
     : 0;
 
-  return (
-    <div className="mx-auto max-w-5xl px-5 py-12">
-      <ViewTracker path={base} courseId={c.id} />
-      <nav className="mb-6 text-sm font-semibold text-ink-soft">
-        <Link href="/cours" className="hover:text-ink">
-          Les cours
-        </Link>{" "}
-        /{" "}
-        <Link href={`/cours/${category}`} className="hover:text-ink">
-          {c.level.category.name}
-        </Link>{" "}
-        / <span className="text-ink">{c.title}</span>
-      </nav>
+  const darkAccent =
+    c.level.category.slug === "mathematiques" ? "var(--l-maths)" : "var(--l-francais)";
+  const totalMinutes = lessons.reduce((s, l) => s + (l.duration_min ?? 0), 0);
 
+  return (
+    <>
+    <ViewTracker path={base} courseId={c.id} />
+    <PageBand
+      crumbs={[
+        { href: "/cours", label: "Les cours" },
+        { href: `/cours/${category}`, label: c.level.category.name },
+        { label: c.title },
+      ]}
+      eyebrow={`${c.level.category.name} · ${c.level.name}`}
+      title={c.title}
+      description={c.description}
+      illustration={c.cover_url || subjectIllustration(c.level.category.slug)}
+      accent={darkAccent}
+    >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem", marginTop: "1.3rem" }}>
+        <span className="l-chip" style={{ fontSize: ".82rem" }}>
+          {lessons.length} leçon{lessons.length > 1 ? "s" : ""}
+        </span>
+        {totalMinutes > 0 && (
+          <span className="l-chip" style={{ fontSize: ".82rem" }}>≈ {totalMinutes} min</span>
+        )}
+        <span
+          className="l-chip"
+          style={{
+            fontSize: ".82rem",
+            color: c.is_premium ? "var(--l-sun)" : "var(--l-grow)",
+          }}
+        >
+          {c.is_premium ? `Premium · ${c.price} €` : "Gratuit"}
+        </span>
+      </div>
+      {userId && lessons.length > 0 && (
+        <div style={{ marginTop: "1.4rem", maxWidth: 420 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: ".85rem", fontWeight: 700, color: "var(--l-muted)" }}>
+            <span>Ta progression</span>
+            <span style={{ color: "var(--l-text)", fontVariantNumeric: "tabular-nums" }}>
+              {doneCount}/{lessons.length} · {progressPct}%
+            </span>
+          </div>
+          <div style={{ marginTop: ".4rem", height: 10, borderRadius: 999, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
+            <div style={{ width: `${progressPct}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, var(--l-grow), var(--l-cyan))" }} />
+          </div>
+        </div>
+      )}
+    </PageBand>
+
+    <div className="mx-auto max-w-6xl px-5 py-12">
       {paiement === "reussi" && (
         <div className="mb-6 rounded-card border border-grow bg-grow/10 p-4 font-semibold text-grow">
           🎉 Paiement réussi ! Ton accès est en cours d'activation. Recharge la
@@ -98,50 +138,16 @@ export default async function CoursePage(props: {
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         {/* Main --------------------------------------------------------- */}
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <span
-              className="rounded-full px-3 py-1 text-xs font-bold text-white"
-              style={{ background: accent }}
-            >
-              {c.level.category.name} · {c.level.name}
-            </span>
-            {c.is_premium ? (
-              <span className="rounded-full bg-sun px-3 py-1 text-xs font-extrabold text-ink">
-                Premium
-              </span>
-            ) : (
-              <span className="rounded-full bg-grow/15 px-3 py-1 text-xs font-bold text-grow">
-                Gratuit
-              </span>
-            )}
-          </div>
-
-          <h1 className="font-display text-4xl font-semibold leading-tight text-ink">
-            {c.title}
-          </h1>
-          {c.description && (
-            <p className="mt-3 max-w-2xl text-lg text-ink-soft">
-              {c.description}
-            </p>
-          )}
-
-          {userId && lessons.length > 0 && (
-            <div className="mt-6">
-              <div className="mb-1 flex justify-between text-sm font-semibold text-ink-soft">
-                <span>Ta progression</span>
-                <span>{progressPct}%</span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-paper-2">
-                <div
-                  className="h-full rounded-full bg-grow transition-all"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-            </div>
-          )}
+          <h2 className="font-display text-2xl font-semibold text-ink">
+            Programme du cours
+          </h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Suis les leçons dans l&apos;ordre, ou va directement à celle qui
+            t&apos;intéresse.
+          </p>
 
           {/* Lessons list */}
-          <ol className="mt-8 space-y-2.5">
+          <ol className="relative mt-6 space-y-2.5">
             {lessons.map((lesson, i) => {
               const meta = lessonTypeMeta[lesson.type];
               const locked = c.is_premium && lesson.is_premium && !access;
@@ -150,30 +156,47 @@ export default async function CoursePage(props: {
                 <li key={lesson.id}>
                   <Link
                     href={`${base}/${lesson.slug}`}
-                    className="flex items-center gap-4 rounded-2xl border border-line bg-card p-4 transition-colors hover:border-ink"
+                    className="group flex items-center gap-4 rounded-2xl border border-line bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-ink hover:shadow-[0_14px_30px_-18px_rgba(30,42,82,0.4)]"
                   >
                     <span
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
-                      style={{ background: "var(--paper-2)" }}
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl font-display text-lg font-semibold"
+                      style={{
+                        background: isDone
+                          ? "color-mix(in srgb, var(--grow) 16%, transparent)"
+                          : "var(--paper-2)",
+                        color: isDone ? "var(--grow)" : "var(--ink)",
+                      }}
                       aria-hidden
                     >
-                      {isDone ? "✅" : meta.icon}
+                      {isDone ? "✓" : i + 1}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-ink">
-                        <span className="text-ink-soft">{i + 1}.</span>{" "}
+                      <span className="block font-bold text-ink">
                         {lesson.title}
                       </span>
-                      <span className="text-xs text-ink-soft">
+                      <span className="mt-0.5 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+                        <span aria-hidden>{meta.icon}</span>
                         {meta.label}
                         {lesson.duration_min
                           ? ` · ${lesson.duration_min} min`
                           : ""}
+                        {isDone && <span className="text-grow">· Terminée</span>}
                       </span>
                     </span>
-                    {locked && (
-                      <span className="shrink-0 text-ink-soft" aria-label="Verrouillé">
-                        🔒
+                    {locked ? (
+                      <span
+                        className="shrink-0 rounded-full bg-sun/20 px-2.5 py-1 text-xs font-extrabold text-ink"
+                        aria-label="Verrouillé"
+                      >
+                        🔒 Premium
+                      </span>
+                    ) : (
+                      <span
+                        className="shrink-0 text-lg font-bold transition-transform group-hover:translate-x-1"
+                        style={{ color: accent }}
+                        aria-hidden
+                      >
+                        →
                       </span>
                     )}
                   </Link>
@@ -207,5 +230,6 @@ export default async function CoursePage(props: {
         </aside>
       </div>
     </div>
+    </>
   );
 }

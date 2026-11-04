@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import {
   getCategoryBySlug,
   getLevels,
   getCoursesByLevel,
 } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
 import { CourseCard } from "@/components/course-card";
+import { PageBand } from "@/components/page-band";
 import { categoryAccent } from "@/lib/ui";
+import { subjectIllustration } from "@/lib/illustrations";
 
 export async function generateMetadata(props: {
   params: Promise<{ category: string }>;
@@ -26,6 +28,7 @@ export default async function CategoryPage(props: {
   if (!cat) notFound();
 
   const accent = categoryAccent(cat.slug);
+  const darkAccent = cat.slug === "mathematiques" ? "var(--l-maths)" : "var(--l-francais)";
   const levels = await getLevels(cat.id);
   const levelsWithCourses = await Promise.all(
     levels.map(async (lvl) => ({
@@ -34,81 +37,94 @@ export default async function CategoryPage(props: {
     })),
   );
 
+  // Lesson counts per course (published only, via RLS).
+  const courseIds = levelsWithCourses.flatMap((l) => l.courses.map((c) => c.id));
+  const lessonCounts: Record<string, number> = {};
+  if (courseIds.length) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("lessons")
+      .select("course_id")
+      .in("course_id", courseIds)
+      .eq("status", "published");
+    for (const row of data ?? []) {
+      lessonCounts[row.course_id] = (lessonCounts[row.course_id] ?? 0) + 1;
+    }
+  }
+
+  const nonEmpty = levelsWithCourses.filter((l) => l.courses.length > 0);
+  const totalCourses = courseIds.length;
+
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
-      <nav className="mb-6 text-sm font-semibold text-ink-soft">
-        <Link href="/cours" className="hover:text-ink">
-          Les cours
-        </Link>{" "}
-        <span aria-hidden>/</span> <span className="text-ink">{cat.name}</span>
-      </nav>
+    <>
+      <PageBand
+        crumbs={[
+          { href: "/", label: "Accueil" },
+          { href: "/cours", label: "Les cours" },
+          { label: cat.name },
+        ]}
+        eyebrow={`${totalCourses} cours · ${nonEmpty.length} niveau${nonEmpty.length > 1 ? "x" : ""}`}
+        title={cat.name}
+        description={cat.description}
+        illustration={subjectIllustration(cat.slug)}
+        accent={darkAccent}
+      >
+        {nonEmpty.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem", marginTop: "1.4rem" }}>
+            {nonEmpty.map(({ level }) => (
+              <a key={level.id} href={`#${level.slug}`} className="l-chip" style={{ fontSize: ".85rem" }}>
+                {level.name}
+              </a>
+            ))}
+          </div>
+        )}
+      </PageBand>
 
-      <header className="mb-10 flex items-center gap-4">
-        <div
-          aria-hidden
-          className="grid h-16 w-16 place-items-center rounded-2xl text-4xl"
-          style={{ background: accent, color: "#fff" }}
-        >
-          {cat.icon ?? "📘"}
-        </div>
-        <div>
-          <h1 className="font-display text-4xl font-semibold text-ink">
-            {cat.name}
-          </h1>
-          {cat.description && (
-            <p className="mt-1 text-ink-soft">{cat.description}</p>
-          )}
-        </div>
-      </header>
-
-      {levelsWithCourses.every((l) => l.courses.length === 0) ? (
-        <EmptyState />
-      ) : (
-        <div className="space-y-12">
-          {levelsWithCourses.map(({ level, courses }) =>
-            courses.length === 0 ? null : (
-              <section key={level.id}>
-                <div className="mb-4 flex items-baseline gap-3">
-                  <h2 className="font-display text-2xl font-semibold text-ink">
+      <div className="mx-auto max-w-6xl px-5 py-12">
+        {nonEmpty.length === 0 ? (
+          <div className="rounded-card border border-dashed border-line bg-card p-10 text-center">
+            <p className="font-display text-xl font-semibold text-ink">
+              Bientôt disponible
+            </p>
+            <p className="mt-2 text-ink-soft">
+              Les cours de cette matière arrivent très prochainement.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-14">
+            {nonEmpty.map(({ level, courses }) => (
+              <section key={level.id} id={level.slug} className="scroll-mt-24">
+                <div className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h2 className="font-display text-3xl font-semibold text-ink">
                     {level.name}
                   </h2>
-                  <span className="text-sm text-ink-soft">
+                  <span className="text-sm font-semibold text-ink-soft">
                     {courses.length} cours
                   </span>
                 </div>
                 {level.description && (
-                  <p className="mb-4 max-w-2xl text-sm text-ink-soft">
+                  <p className="-mt-3 mb-5 max-w-2xl text-sm text-ink-soft">
                     {level.description}
                   </p>
                 )}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {courses.map((course) => (
                     <CourseCard
                       key={course.id}
                       course={course}
                       accent={accent}
+                      categorySlug={cat.slug}
+                      levelName={level.name}
+                      lessonCount={lessonCounts[course.id] ?? 0}
                       href={`/cours/${cat.slug}/${level.slug}/${course.slug}`}
                     />
                   ))}
                 </div>
               </section>
-            ),
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-card border border-dashed border-line bg-card p-10 text-center">
-      <p className="font-display text-xl font-semibold text-ink">
-        Bientôt disponible
-      </p>
-      <p className="mt-2 text-ink-soft">
-        Les cours de cette matière arrivent très prochainement.
-      </p>
-    </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

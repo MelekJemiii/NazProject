@@ -17,9 +17,17 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    remotePatterns: supabaseHost
-      ? [{ protocol: "https", hostname: supabaseHost }]
-      : [],
+    remotePatterns: [
+      // Brand illustrations (Higgsfield CDN) — see src/lib/illustrations.ts
+      {
+        protocol: "https",
+        hostname: "d8j0ntlcm91z4.cloudfront.net",
+        pathname: "/user_3Km3PeOIcRa6RJV8EoG95ZC6TzG/**",
+      },
+      ...(supabaseHost
+        ? [{ protocol: "https" as const, hostname: supabaseHost }]
+        : []),
+    ],
   },
 };
 
