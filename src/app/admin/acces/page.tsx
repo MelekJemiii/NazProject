@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { AdminPageHeader } from "@/components/admin/shell";
 import { AccessQueue } from "@/components/admin/access-queue";
+import { GrantAccessForm } from "@/components/admin/grant-access-form";
 
 export const metadata = { title: "Accès premium" };
 
@@ -41,18 +43,22 @@ export default async function AccessPage() {
     price: courseById[e.course_id]?.price ?? 0,
   }));
 
+  const [{ data: students }, { data: premiumCourses }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name").eq("role", "student").order("full_name"),
+    supabase.from("courses").select("id, title, price").eq("is_premium", true).order("title"),
+  ]);
+
   return (
-    <div>
-      <h1 className="font-display text-3xl font-semibold text-ink">
-        Accès premium
-      </h1>
-      <p className="mt-1 text-ink-soft">
-        Valide les demandes d'accès et gère les accès accordés. (Les paiements
-        par carte via Stripe accordent l'accès automatiquement.)
-      </p>
-      <div className="mt-8">
-        <AccessQueue rows={rows} />
-      </div>
+    <div className="grid gap-6">
+      <AdminPageHeader
+        title="Accès premium"
+        description="Valide les demandes d'accès et gère les accès accordés. Les paiements par carte accordent l'accès automatiquement."
+      />
+      <GrantAccessForm
+        students={(students ?? []).map((s) => ({ id: s.id, name: s.full_name || "Sans nom" }))}
+        courses={(premiumCourses ?? []).map((c) => ({ id: c.id, title: c.title, price: c.price ?? 0 }))}
+      />
+      <AccessQueue rows={rows} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { Category, Level, Course, Lesson } from "@/lib/supabase/types";
 import {
   Modal,
@@ -240,6 +241,14 @@ export function CatalogueManager({
                                     <span aria-hidden title="Premium">
                                       🔒
                                     </span>
+                                  )}
+                                  {les.type === "quiz" && (
+                                    <Link
+                                      href={`/admin/quiz/${les.id}`}
+                                      className="rounded-full bg-sun/25 px-2.5 py-1 text-xs font-extrabold text-ink hover:bg-sun/40"
+                                    >
+                                      ✏️ Questions
+                                    </Link>
                                   )}
                                   <RowActions
                                     small
@@ -627,8 +636,20 @@ function LessonFields({
       )}
       {type === "quiz" && (
         <p className="rounded-lg bg-paper-2 px-3 py-2 text-sm text-ink-soft">
-          Enregistre d'abord la leçon, puis gère les questions du quiz depuis
-          le bouton « Questions » (à venir dans l'éditeur de quiz).
+          {data?.id ? (
+            <>
+              Les questions se gèrent dans l&apos;éditeur de quiz :{" "}
+              <Link href={`/admin/quiz/${data.id}`} className="font-bold text-ink underline">
+                ouvrir l&apos;éditeur
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              Enregistre d&apos;abord la leçon, puis clique sur « Questions » à
+              côté d&apos;elle dans le catalogue pour ajouter les questions.
+            </>
+          )}
         </p>
       )}
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { AdminPageHeader } from "@/components/admin/shell";
 import { CatalogueManager } from "@/components/admin/catalogue-manager";
 import type { Category, Level, Course, Lesson } from "@/lib/supabase/types";
 
@@ -18,11 +19,11 @@ export default async function CataloguePage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-semibold text-ink">Catalogue</h1>
-      <p className="mt-1 text-ink-soft">
-        Gère tes matières, niveaux, cours et leçons.
-      </p>
-      <div className="mt-8">
+      <AdminPageHeader
+        title="Catalogue"
+        description={`${(categories ?? []).length} matières · ${(levels ?? []).length} niveaux · ${(courses ?? []).length} cours · ${(lessons ?? []).length} leçons. Déplie une ligne pour voir son contenu.`}
+      />
+      <div className="mt-6">
         <CatalogueManager
           categories={(categories ?? []) as Category[]}
           levels={(levels ?? []) as Level[]}

@@ -277,3 +277,84 @@ export async function setUserRole(
   revalidatePath("/admin/etudiants");
   return { ok: true };
 }
+
+// ---- Quiz editor ----------------------------------------------------------
+export type QuizPayload = {
+  passScore: number;
+  questions: {
+    prompt: string;
+    explanation: string;
+    options: { label: string; isCorrect: boolean }[];
+  }[];
+};
+
+/**
+ * Saves a lesson's whole quiz in one go: upserts the quiz row, then replaces
+ * its questions and options (options cascade-delete with their question).
+ */
+export async function saveQuiz(
+  lessonId: string,
+  payload: QuizPayload,
+): Promise<Result> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard;
+
+  // Validate before touching the database.
+  if (!payload.questions.length)
+    return { ok: false, error: "Ajoute au moins une question." };
+  for (const [i, q] of payload.questions.entries()) {
+    const n = i + 1;
+    if (!q.prompt.trim()) return { ok: false, error: `Question ${n} : l'énoncé est vide.` };
+    const opts = q.options.filter((o) => o.label.trim());
+    if (opts.length < 2)
+      return { ok: false, error: `Question ${n} : il faut au moins 2 réponses.` };
+    if (opts.filter((o) => o.isCorrect).length !== 1)
+      return { ok: false, error: `Question ${n} : coche exactement une bonne réponse.` };
+  }
+  const passScore = Math.min(100, Math.max(0, Math.round(payload.passScore)));
+
+  const { supabase } = guard;
+  const { data: quiz, error: qErr } = await supabase
+    .from("quizzes")
+    .upsert({ lesson_id: lessonId, pass_score: passScore }, { onConflict: "lesson_id" })
+    .select("id")
+    .single();
+  if (qErr || !quiz) return { ok: false, error: qErr?.message ?? "Quiz introuvable." };
+
+  const { error: delErr } = await supabase
+    .from("quiz_questions")
+    .delete()
+    .eq("quiz_id", quiz.id);
+  if (delErr) return { ok: false, error: delErr.message };
+
+  const { data: inserted, error: insErr } = await supabase
+    .from("quiz_questions")
+    .insert(
+      payload.questions.map((q, i) => ({
+        quiz_id: quiz.id,
+        prompt: q.prompt.trim(),
+        explanation: q.explanation.trim() || null,
+        position: i + 1,
+      })),
+    )
+    .select("id, position");
+  if (insErr || !inserted) return { ok: false, error: insErr?.message ?? "Échec de l'enregistrement." };
+
+  const idByPos = Object.fromEntries(inserted.map((r) => [r.position, r.id]));
+  const options = payload.questions.flatMap((q, i) =>
+    q.options
+      .filter((o) => o.label.trim())
+      .map((o, j) => ({
+        question_id: idByPos[i + 1],
+        label: o.label.trim(),
+        is_correct: o.isCorrect,
+        position: j + 1,
+      })),
+  );
+  const { error: optErr } = await supabase.from("quiz_options").insert(options);
+  if (optErr) return { ok: false, error: optErr.message };
+
+  revalidatePath(`/admin/quiz/${lessonId}`);
+  revalidatePath("/cours", "layout");
+  return { ok: true, id: quiz.id };
+}

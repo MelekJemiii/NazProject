@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { AdminPageHeader } from "@/components/admin/shell";
 import { StudentsTable } from "@/components/admin/students-table";
 import type { Profile } from "@/lib/supabase/types";
 
@@ -22,12 +23,11 @@ export default async function StudentsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-semibold text-ink">Étudiants</h1>
-      <p className="mt-1 text-ink-soft">
-        {(profiles ?? []).length} compte(s). Gère les rôles et consulte
-        l'activité.
-      </p>
-      <div className="mt-8">
+      <AdminPageHeader
+        title="Élèves"
+        description={`${(profiles ?? []).length} compte${(profiles ?? []).length > 1 ? "s" : ""}. Recherche un élève, consulte son activité et gère les rôles.`}
+      />
+      <div className="mt-6">
         <StudentsTable
           profiles={(profiles ?? []) as Profile[]}
           enrollCounts={enrollCounts}
