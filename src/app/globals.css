@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   NazProject — design tokens
+   "Cahier" (exercise-book) world: ink-blue, warm paper, subject accents.
+   ========================================================================== */
+:root {
+  --paper: #fbfaf6;
+  --paper-2: #f3f1e9;
+  --ink: #1e2a52;
+  --ink-soft: #4a5578;
+  --line: #e4e0d4;
+
+  --francais: #e8604c; /* coral  — Français */
+  --maths: #2563c9;    /* blue   — Mathématiques */
+  --sun: #f4b63f;      /* marker yellow accent */
+  --grow: #2fae7a;     /* success / progress */
+
+  --card: #ffffff;
+  --ring: #1e2a52;
+  --shadow: 24px 24px 0 -12px rgba(30, 42, 82, 0.08);
+  --radius: 18px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14161f;
+    --paper-2: #1b1e2b;
+    --ink: #eef1fb;
+    --ink-soft: #a6adc8;
+    --line: #2a2e3d;
+    --card: #1b1e2b;
+    --ring: #8ea2e0;
+    --shadow: 24px 24px 0 -12px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14161f;
+  --paper-2: #1b1e2b;
+  --ink: #eef1fb;
+  --ink-soft: #a6adc8;
+  --line: #2a2e3d;
+  --card: #1b1e2b;
+  --ring: #8ea2e0;
+  --shadow: 24px 24px 0 -12px rgba(0, 0, 0, 0.4);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-francais: var(--francais);
+  --color-maths: var(--maths);
+  --color-sun: var(--sun);
+  --color-grow: var(--grow);
+  --color-card: var(--card);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-nunito);
+  --radius-card: var(--radius);
+}
+
+* {
+  border-color: var(--line);
+}
+
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Notebook rule background — used on the hero and section backdrops. */
+.cahier-lines {
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--line) 31px,
+    var(--line) 32px
+  );
+  background-size: 100% 32px;
+}
+
+/* Hand-drawn style underline for headings. */
+.ink-underline {
+  position: relative;
+  display: inline-block;
+}
+.ink-underline::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -0.15em;
+  height: 0.32em;
+  background: var(--sun);
+  border-radius: 999px;
+  z-index: -1;
+  opacity: 0.85;
+}
+
+/* Focus visibility — accessibility floor. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ==========================================================================
+   Brand lockup — Naz Académie (owl + wordmark)
+   ========================================================================== */
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.brand-word {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.brand-swoosh {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: 0.08em;
+  height: 0.2em;
+  background: var(--sun);
+  border-radius: 999px;
+  z-index: -1;
+}
+.brand-sub {
+  font-family: var(--font-nunito), sans-serif;
+  font-weight: 800;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 0.15rem;
+}
+.brand-tagline {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 0.1rem;
+}
+
+/* Owl eye-blink loop (used where blink is enabled). */
+.owl-lid {
+  transform-box: fill-box;
+  transform-origin: center top;
+  transform: scaleY(0);
+  animation: owl-blink 6s ease-in-out 2s infinite;
+}
+@keyframes owl-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(0);
+  }
+  96%,
+  98% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owl-lid {
+    animation: none;
+  }
+}
+
+/* Rich lesson content (articles authored in the admin). */
+.prose-lesson {
+  line-height: 1.7;
+  font-size: 1.075rem;
+}
+.prose-lesson h2 {
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 1.6rem 0 0.6rem;
+  color: var(--ink);
+}
+.prose-lesson h3 {
+  font-family: var(--font-fraunces), serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.4rem;
+}
+.prose-lesson p {
+  margin: 0.75rem 0;
+  max-width: 68ch;
+}
+.prose-lesson ul,
+.prose-lesson ol {
+  margin: 0.75rem 0 0.75rem 1.4rem;
+  list-style: revert;
+}
+.prose-lesson li {
+  margin: 0.3rem 0;
+}
+.prose-lesson strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.prose-lesson a {
+  color: var(--maths);
+  text-decoration: underline;
+}
+.prose-lesson code {
+  background: var(--paper-2);
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
